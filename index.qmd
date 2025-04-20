@@ -1,8 +1,13 @@
 ---
-title: "eqnz recent 100 earthquakes"
-author: "Jo Dudding"
-format: dashboard
+title: "#eqnz - recent 100 MMI 3+ earthquakes"
+author: "Source: [geonet.org.nz](geonet.org.nz)"
+format: html
 ---
+
+- convert to dashboard
+- ggplot theme
+- colour palette
+- comment on deleted
 
 
 ```{r}
@@ -13,6 +18,8 @@ library(httr2)
 library(sf)
 library(glue)
 library(gt)
+library(scales)
+library(viridisLite)
 
 # set location to NZ
 
@@ -21,6 +28,24 @@ Sys.setlocale("LC_ALL", "en_NZ.utf8")
 eq_site <- 'https://www.geonet.org.nz/earthquake'
 
 time_now <- now(tzone = "Pacific/Auckland")
+
+mmi_intensity <- tribble(
+  ~mmi,	~intensity, ~colour,
+  1, 'unnoticeable','#FFF7F3',
+  2, 'unnoticeable','#FEEDDE',
+  3, 'weak',        '#FDD0A2',
+  4, 'light',       '#FDAE6B',
+  5, 'moderate',    '#FD8D3C',
+  6, 'strong',      '#F16913',
+  7, 'severe',      '#F03B20',
+  8, 'extreme',     '#BD0026',
+  9, 'extreme',     '#A30021',
+  10,	'extreme',    '#A30021',
+  11,	'extreme',    '#A30021'
+)
+
+pal_mmi <- mmi_intensity$colour
+names(pal_mmi) <- mmi_intensity$mmi
 
 ```
 
@@ -55,12 +80,19 @@ eqnz <- eqnz_raw |>
   ) |> 
   # removed deleted
   filter(quality != 'deleted') |> 
+  left_join(mmi_intensity, by = 'mmi') |> 
   glimpse()
 
 summary(eqnz$depth)
 
-eqnz |> 
-  count(quality)
+day_count <- eqnz |> 
+  count(days_ago)
+
+num_today <- sum(eqnz$days_ago == 0)
+num_week <- sum(eqnz$days_ago < 7)
+
+interval_latest <- first(eqnz$time_interval)
+mag_latest <- first(eqnz$magnitude)
 
 ```
 
@@ -75,6 +107,32 @@ eqnz |>
     title = 'Distribution of magnitude'
   ) +
   guides(fill = 'none')
+
+```
+
+```{r}
+eqnz |> 
+  count(mmi)
+
+```
+
+```{r}
+eqnz |> 
+  ggplot(aes(time, magnitude, colour = colour)) +
+  geom_point(size = 4) +
+  scale_colour_identity()
+```
+
+```{r}
+
+magma(n = 9) |> 
+  show_col()
+
+
+```
+
+```{r}
+
 
 ```
 
