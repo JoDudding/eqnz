@@ -1,0 +1,80 @@
+---
+title: "eqnz recent 100 earthquakes"
+author: "Jo Dudding"
+format: dashboard
+---
+
+
+```{r}
+#| echo: false
+
+library(tidyverse)
+library(httr2)
+library(sf)
+library(glue)
+library(gt)
+
+# set location to NZ
+
+Sys.setlocale("LC_ALL", "en_NZ.utf8") 
+
+eq_site <- 'https://www.geonet.org.nz/earthquake'
+
+time_now <- now(tzone = "Pacific/Auckland")
+
+```
+
+
+
+```{r}
+#| echo: false
+
+# prevent multiple hits while testing
+if( ! exists('eqnz_raw')) {
+
+  req <- request("https://api.geonet.org.nz/quake?MMI=3") |> 
+    req_headers("Accept"="application/vnd.geo+json")
+  
+  resp <- req_perform(req)
+  
+  eqnz_raw <- resp |> 
+    resp_body_string() |> 
+    st_read(quiet = TRUE)
+}
+
+eqnz <- eqnz_raw |> 
+  as_tibble() |> 
+  mutate(
+    date = as_date(time),
+    time_interval = interval(time, time_now),
+    hours_ago = floor(time_interval / hours(1)),
+    days_ago = floor(time_interval / days(1)),
+    link = glue('https://www.geonet.org.nz/earthquake/{publicID}'),
+    mag_band = floor(magnitude) |> 
+      factor()
+  ) |> 
+  # removed deleted
+  filter(quality != 'deleted') |> 
+  glimpse()
+
+summary(eqnz$depth)
+
+eqnz |> 
+  count(quality)
+
+```
+
+```{r}
+
+eqnz |> 
+  count(mag_band) |> 
+  ggplot(aes(mag_band, n)) +
+  geom_col() +
+  labs(
+    x = NULL, y = NULL,
+    title = 'Distribution of magnitude'
+  ) +
+  guides(fill = 'none')
+
+```
+
