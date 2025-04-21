@@ -1,6 +1,8 @@
 # eqnz
 
-Using API to pull earthquake data for New Zealand from GeoNet
+## Latest MMI 3+ earthquakes in New Zealand
+
+Using [API](https://api.geonet.org.nz/) to pull earthquake data for New Zealand from [GeoNet](https://www.geonet.org.nz/earthquake)
 
 Open the dashboard here [jodudding.github.io/eqnz/](jodudding.github.io/eqnz/)
 
