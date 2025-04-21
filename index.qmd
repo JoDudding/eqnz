@@ -1,34 +1,46 @@
 ---
-title: "#eqnz - recent 100 MMI 3+ earthquakes"
-author: "Source: [geonet.org.nz](geonet.org.nz)"
-format: html
+title: "#eqnz - latest 100 MMI 3+ earthquakes"
+author: "Source: [GeoNet](https://api.geonet.org.nz/)"
+format: 
+  dashboard:
+    orientation: columns
+    theme: pulse
+    embed-resources: true
 ---
 
-- convert to dashboard
-- ggplot theme
-- colour palette
-- comment on deleted
+:::{.hidden}
 
+- ggplot theme and size
+- comment on deleted
+- add cell colours to table
+- github actions to automate
+- change dashboard colour theme
+- add nz outline to map
+:::
 
 ```{r}
+#| label: setup
 #| echo: false
+#| message: false
+#| warning: false
 
+# assign libraries
 library(tidyverse)
 library(httr2)
 library(sf)
 library(glue)
 library(gt)
 library(scales)
-library(viridisLite)
+library(ggtext)
+
 
 # set location to NZ
+x <- Sys.setlocale("LC_ALL", "en_NZ.utf8")
 
-Sys.setlocale("LC_ALL", "en_NZ.utf8") 
-
-eq_site <- 'https://www.geonet.org.nz/earthquake'
-
+# get current time
 time_now <- now(tzone = "Pacific/Auckland")
 
+# mapping of mmi to intensity with colour palette used by geonet
 mmi_intensity <- tribble(
   ~mmi,	~intensity, ~colour,
   1, 'unnoticeable','#FFF7F3',
@@ -47,28 +59,41 @@ mmi_intensity <- tribble(
 pal_mmi <- mmi_intensity$colour
 names(pal_mmi) <- mmi_intensity$mmi
 
+theme_set(
+  theme_bw(base_size = 13) +
+    theme(
+      plot.title.position = "plot",
+      panel.border = element_rect(fill = NA, colour = NA)
+    )
+)
+
 ```
 
+```{r}
+#| label: get-raw-from-api
+#| echo: false
+#| message: false
+#| warning: false
 
+req <- request("https://api.geonet.org.nz/quake?MMI=3") |> 
+  req_headers("Accept"="application/vnd.geo+json")
+
+resp <- req_perform(req)
+
+eqnz_raw <- resp |> 
+  resp_body_string() |> 
+  st_read(quiet = TRUE)
+
+```
 
 ```{r}
+#| label: data-cleaning
 #| echo: false
-
-# prevent multiple hits while testing
-if( ! exists('eqnz_raw')) {
-
-  req <- request("https://api.geonet.org.nz/quake?MMI=3") |> 
-    req_headers("Accept"="application/vnd.geo+json")
-  
-  resp <- req_perform(req)
-  
-  eqnz_raw <- resp |> 
-    resp_body_string() |> 
-    st_read(quiet = TRUE)
-}
+#| message: false
+#| warning: false
 
 eqnz <- eqnz_raw |> 
-  as_tibble() |> 
+  #as_tibble() |> 
   mutate(
     date = as_date(time),
     time_interval = interval(time, time_now),
@@ -76,63 +101,175 @@ eqnz <- eqnz_raw |>
     days_ago = floor(time_interval / days(1)),
     link = glue('https://www.geonet.org.nz/earthquake/{publicID}'),
     mag_band = floor(magnitude) |> 
-      factor()
+      factor(),
+    since = case_when(
+      hours_ago == 0 ~ 'In the last hour',
+      hours_ago == 1 ~ '1 hour ago',
+      hours_ago < 24 ~ glue('{hours_ago} hours ago'),
+      hours_ago < 48 ~ 'Yesterday',
+      days_ago < 7 ~ glue('{days_ago} days ago'),
+      days_ago < 14 ~ 'Last week',
+      TRUE ~ glue('{floor(days_ago / 7)} weeks ago')
+    ) |> 
+      fct_reorder(hours_ago)
   ) |> 
   # removed deleted
   filter(quality != 'deleted') |> 
-  left_join(mmi_intensity, by = 'mmi') |> 
-  glimpse()
+  left_join(mmi_intensity, by = 'mmi')
 
-summary(eqnz$depth)
+today_num <- sum(eqnz$days_ago == 0)
+week_num <- sum(eqnz$days_ago < 7)
 
-day_count <- eqnz |> 
-  count(days_ago)
+today_colour <- eqnz |> 
+  filter(days_ago == 0) |> 
+  filter(mmi == max(mmi)) |> 
+  slice(1) |> 
+  pull(colour)
 
-num_today <- sum(eqnz$days_ago == 0)
-num_week <- sum(eqnz$days_ago < 7)
+week_colour <- eqnz |> 
+  filter(days_ago <7) |> 
+  filter(mmi == max(mmi)) |> 
+  slice(1) |> 
+  pull(colour)
 
-interval_latest <- first(eqnz$time_interval)
-mag_latest <- first(eqnz$magnitude)
+latest_since <- first(eqnz$hours_ago)
+latest_mag <- round(first(eqnz$magnitude), 1)
+latest_colour <- first(eqnz$colour)
+```
 
+## Column
+
+### Row {height=18%}
+
+```{r}
+#| label: latest-since
+#| component: valuebox
+#| title: Hours since last earthquake
+list(
+  icon = "stopwatch",
+  color = latest_colour,
+  value = as.numeric(latest_since)
+)
 ```
 
 ```{r}
+#| label: latest-mag
+#| component: valuebox
+#| title: Magnitude of last earthquake
+list(
+  icon = "activity",
+  color = latest_colour,
+  value = latest_mag
+)
+```
+
+```{r}
+#| label: day-count
+#| component: valuebox
+#| title: Number today
+list(
+  icon = "calendar-event",
+  color = today_colour,
+  value = today_num
+)
+```
+
+```{r}
+#| label: week-count
+#| component: valuebox
+#| title: Number this week
+list(
+  icon = "calendar2",
+  color = week_colour,
+  value = week_num
+)
+```
+
+### Row
+
+#### Column {width=20%}
+
+```{r}
+#| label: last-ten
 
 eqnz |> 
-  count(mag_band) |> 
-  ggplot(aes(mag_band, n)) +
+  as_tibble() |> 
+  slice(1:10) |> 
+  transmute(
+    #colour,
+    ID = glue('[{publicID}]({link})'),
+    Summary = glue('**MMI {mmi} - {intensity}**\n\n{
+      since} - {format(time, "%a, %d %B %Y %I:%M %p")}\n\nMagnitude {
+      comma(magnitude, 0.1)} with depth of {comma(depth, 1)} km\n\n{locality}')
+  ) |> 
+  gt() |> 
+  fmt_markdown() |> 
+  cols_align('left') |> 
+  tab_header(
+    title = md("**Last 10 earthquakes**")
+  )
+
+```
+
+#### Column {width=30%}
+
+```{r}
+#| label: distribution-mmi
+
+eqnz |> 
+  count(mmi, colour) |> 
+  ggplot(aes(mmi, n, fill = colour)) +
   geom_col() +
+  scale_fill_identity() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
   labs(
     x = NULL, y = NULL,
-    title = 'Distribution of magnitude'
+    title = 'Distribution of MMI'
   ) +
   guides(fill = 'none')
 
 ```
 
-```{r}
-eqnz |> 
-  count(mmi)
-
-```
 
 ```{r}
+#| label: quake-trend
+
 eqnz |> 
   ggplot(aes(time, magnitude, colour = colour)) +
   geom_point(size = 4) +
-  scale_colour_identity()
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)), limits = c(0, NA)) +
+  scale_colour_identity() +
+  labs(
+    x = NULL, y = NULL,
+    title = 'Quake trend of magnitude'
+  )
 ```
+
+#### Column {width=50%}
 
 ```{r}
+#| label: location-quakes
 
-magma(n = 9) |> 
-  show_col()
+eqnz |> 
+  arrange(time) |> 
+  ggplot(aes(colour = colour, size = fct_rev(intensity))) +
+  geom_sf(aes()) +
+  scale_colour_identity() +
+  labs(
+    x = NULL, y = NULL,
+    size = NULL,
+    title = 'Location of quakes'
+  ) +
+  coord_sf() +
+  guides(size = 'none', x = 'none', y = 'none')
 
+#' todo
+#' nz outline
+#' ggirafe for hover
 
 ```
 
-```{r}
+### Row
 
-
-```
+Last updated: `r format(time_now, "%a, %d %B %Y %I:%M %p")`
 
