@@ -132,6 +132,13 @@ week_colour <- eqnz |>
   slice(1) |> 
   pull(colour)
 
+week_mag <- eqnz |> 
+  filter(days_ago <7) |> 
+  filter(magnitude == max(magnitude)) |> 
+  slice(1) |> 
+  mutate(magnitude = round(magnitude, 1)) |> 
+  pull(magnitude)
+
 latest_since <- first(eqnz$hours_ago)
 latest_mag <- round(first(eqnz$magnitude), 1)
 latest_colour <- first(eqnz$colour)
@@ -144,7 +151,7 @@ latest_colour <- first(eqnz$colour)
 ```{r}
 #| label: latest-since
 #| component: valuebox
-#| title: Hours since last earthquake
+#| title: Hours since last
 list(
   icon = "stopwatch",
   color = latest_colour,
@@ -155,7 +162,7 @@ list(
 ```{r}
 #| label: latest-mag
 #| component: valuebox
-#| title: Magnitude of last earthquake
+#| title: Magnitude of last
 list(
   icon = "activity",
   color = latest_colour,
@@ -171,6 +178,17 @@ list(
   icon = "calendar-event",
   color = today_colour,
   value = today_num
+)
+```
+
+```{r}
+#| label: week-mag
+#| component: valuebox
+#| title: Largest this week
+list(
+  icon = "activity",
+  color = week_colour,
+  value = week_mag
 )
 ```
 
