@@ -1,10 +1,11 @@
 ---
-title: "#eqnz - latest 100 MMI 3+ earthquakes"
+title: "#eqnz - latest MMI 3+ earthquakes in New Zealand"
 author: "Source: [GeoNet](https://api.geonet.org.nz/)"
 format: 
   dashboard:
     orientation: columns
     embed-resources: true
+    theme: pulse
 ---
 
 :::{.hidden}
@@ -31,7 +32,7 @@ library(glue)
 library(gt)
 library(scales)
 library(ggtext)
-library(bslib)
+library(leaflet)
 
 # get current time
 time_now <- now(tzone = "Pacific/Auckland")
@@ -107,7 +108,8 @@ eqnz <- eqnz_raw |>
       days_ago < 14 ~ 'Last week',
       TRUE ~ glue('{floor(days_ago / 7)} weeks ago')
     ) |> 
-      fct_reorder(hours_ago)
+      fct_reorder(hours_ago),
+    nice_time = format(time, "%Y-%m-%d %H:%M")
   ) |> 
   # removed deleted
   filter(quality != 'deleted') |> 
@@ -201,44 +203,68 @@ list(
 
 ### Row
 
-#### Column {width=22%}
+#### Column {width=25%}
 
 ```{r}
 #| label: last-ten
+#| padding: 0px
+
+colour_text <- function(x, colour) {
+  glue::glue("<span style='color:{colour}'>{x}</span>")
+}
 
 eqnz |> 
   as_tibble() |> 
   slice(1:10) |> 
   transmute(
-    #colour,
-    ID = glue('[**MMI {mmi}**]({link})\n\n{intensity}\n\n{since}'),
-    Summary = glue('{format(time, "%Y-%m-%d %H:%M")}\n\nMagnitude {
-      comma(magnitude, 0.1)}, depth {comma(depth, 1)} km\n\n{locality}')
+    MMI = mmi,
+    colour,
+    ID = glue('
+      [**{publicID}**]({link})\n\n
+      {intensity}\n\n
+      {since}
+    '),
+    Summary = glue('
+      {nice_time}\n\n
+      Magnitude {comma(magnitude, 0.1)}\n\n
+      Depth {comma(depth, 1)} km\n\n
+      {locality}
+    ')
   ) |> 
   gt() |> 
   fmt_markdown() |> 
   cols_align('left') |> 
   cols_width(
+    MMI ~ px(25),
+    colour ~ px(0),
     ID ~ px(150),
     Summary ~ px(400)
   ) |> 
+  cols_hide(colour) |> 
   tab_header(
     title = md("**Last 10 earthquakes**")
   ) |> 
-  tab_options(table.font.size = px(13))
+  tab_options(table.font.size = px(13)) |> 
+  opt_align_table_header(align = "left") |> 
+  tab_style(
+    style = cell_fill(color = from_column(column = "colour")),
+    locations = cells_body(columns = MMI)
+  )
 
 ```
 
-#### Column {width=28%}
+#### Column {width=35%}
 
 ```{r}
 #| label: distribution-mmi
+#| padding: 0px
 
 eqnz |> 
   count(mmi, colour) |> 
   ggplot(aes(mmi, n, fill = colour)) +
   geom_col() +
   scale_fill_identity() +
+  scale_x_continuous(limits = c(2.5,11.5), breaks = 3:11) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
   labs(
     x = NULL, y = NULL,
@@ -253,26 +279,31 @@ eqnz |>
 #| label: quake-trend
 
 eqnz |> 
-  ggplot(aes(time, magnitude, colour = colour)) +
-  geom_point(size = 4) +
+  ggplot(aes(time, magnitude, colour = colour, size = sqrt(mmi) * 3)) +
+  geom_point() +
   scale_y_continuous(expand = expansion(mult = c(0, 0.05)), limits = c(0, NA)) +
   scale_colour_identity() +
+  scale_size_identity() +
   labs(
     x = NULL, y = NULL,
-    title = 'Quake trend of magnitude'
-  )
+    title = 'Trend of magnitude'
+  ) +
+  guides(size = 'none')
 ```
 
-#### Column {width=50%}
+#### Column {width=40%}
 
 ```{r}
 #| label: location-quakes
+#| eval: false
 
 eqnz |> 
+  mutate(mmi = runif(n(), min = 3, max = 11)) |> 
   arrange(time) |> 
-  ggplot(aes(colour = colour, size = fct_rev(intensity))) +
+  ggplot(aes(colour = colour, size = mmi / 2)) +
   geom_sf(aes()) +
   scale_colour_identity() +
+  scale_size_identity() +
   labs(
     x = NULL, y = NULL,
     size = NULL,
@@ -287,6 +318,32 @@ eqnz |>
 
 ```
 
+```{r}
+#| label: leaflet-quakes
+#| eval: true
+#| padding: 0px
+
+eqnz |> 
+  leaflet() |> 
+  addProviderTiles(providers$Esri.WorldGrayCanvas) |> 
+  setView((165.6765 + 178.5798)/2, (-37.70652 + -46.82575)/2, zoom = 5) |> 
+  addCircleMarkers(
+    stroke = FALSE,
+    color = ~colour,
+    radius = ~sqrt(mmi) * 3,
+    fillOpacity = 0.8,
+    label = ~glue('
+      MMI {mmi}<br>
+      Magnitude {comma(magnitude, 0.1)}<br>
+      Depth {comma(depth, 1)} km<br>
+      Time {nice_time}
+    ') |> 
+      map(html)
+  )
+
+```
+
+
 ### Row
 
 :::{style="font-size: 65%;"}
@@ -295,6 +352,6 @@ Sourced from [https://api.geonet.org.nz/](https://api.geonet.org.nz/)
       |      
 Last extracted `r format(time_now, "%A, %d %B %Y %I:%M %p")`
       |      
-Latest 100 earthquakes excluding deleted
+Latest 100 earthquakes less `r nrow(eqnz_raw) - nrow(eqnz)` that have status of `deleted`
 :::
 

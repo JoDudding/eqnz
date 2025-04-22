@@ -14,6 +14,6 @@ Still a work in progress
 - [x] Map of earthquake locations
 - [ ] Theme improvements
 - [ ] Add colour coding to table
-- [ ] Add NZ outline to map
-- [ ] Add hover labels to map
+- [x] Add NZ outline to map
+- [x] Add hover labels to map
 - [ ] GitHub actions to schedule updates

@@ -36,5 +36,5 @@ typography:
   fonts:
     - family: Monserrat
       source: google
-  base: Monserrat
-  headings: Monserrat
+  #base: Monserrat
+  #headings: Monserrat
