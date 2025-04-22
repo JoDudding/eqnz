@@ -13,7 +13,8 @@ Still a work in progress
 - [x] Table of last 10 earthquakes using `gt`
 - [x] Map of earthquake locations
 - [ ] Theme improvements
-- [ ] Add colour coding to table
+- [ ] Padding improvements
+- [x] Add colour coding to table
 - [x] Add NZ outline to map
 - [x] Add hover labels to map
 - [ ] GitHub actions to schedule updates
