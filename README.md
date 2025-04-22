@@ -17,4 +17,4 @@ Still a work in progress
 - [x] Add colour coding to table
 - [x] Add NZ outline to map
 - [x] Add hover labels to map
-- [ ] GitHub actions to schedule updates
+- [x] GitHub actions to schedule updates

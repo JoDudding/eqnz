@@ -1,9 +1,11 @@
 on:
   push:
     branches: main
+  schedule:
+    - cron: '*/15 * * * *'
 
 jobs:
-  import-data:
+  eqnz-dashboard:
     runs-on: ubuntu-latest
     steps:
       - name: Set up R
@@ -23,7 +25,7 @@ jobs:
             any::leaflet
             any::quarto
             
-      - name: Install quarto
+      - name: Set up quarto
         uses: quarto-dev/quarto-actions/setup@v2
 
       - name: Check out repository
@@ -37,5 +39,5 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add index.html
-          git commit -m 'Data updated' || echo "No changes to commit"
+          git commit -m 'Dashboard updated' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
