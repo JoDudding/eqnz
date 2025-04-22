@@ -4,7 +4,6 @@ author: "Source: [GeoNet](https://api.geonet.org.nz/)"
 format: 
   dashboard:
     orientation: columns
-    theme: pulse
     embed-resources: true
 ---
 
@@ -32,10 +31,7 @@ library(glue)
 library(gt)
 library(scales)
 library(ggtext)
-
-
-# set location to NZ
-x <- Sys.setlocale("LC_ALL", "en_NZ.utf8")
+library(bslib)
 
 # get current time
 time_now <- now(tzone = "Pacific/Auckland")
@@ -205,7 +201,7 @@ list(
 
 ### Row
 
-#### Column {width=20%}
+#### Column {width=22%}
 
 ```{r}
 #| label: last-ten
@@ -215,21 +211,25 @@ eqnz |>
   slice(1:10) |> 
   transmute(
     #colour,
-    ID = glue('[{publicID}]({link})'),
-    Summary = glue('**MMI {mmi} - {intensity}**\n\n{
-      since} - {format(time, "%a, %d %B %Y %I:%M %p")}\n\nMagnitude {
-      comma(magnitude, 0.1)} with depth of {comma(depth, 1)} km\n\n{locality}')
+    ID = glue('[**MMI {mmi}**]({link})\n\n{intensity}\n\n{since}'),
+    Summary = glue('{format(time, "%Y-%m-%d %H:%M")}\n\nMagnitude {
+      comma(magnitude, 0.1)}, depth {comma(depth, 1)} km\n\n{locality}')
   ) |> 
   gt() |> 
   fmt_markdown() |> 
   cols_align('left') |> 
+  cols_width(
+    ID ~ px(150),
+    Summary ~ px(400)
+  ) |> 
   tab_header(
     title = md("**Last 10 earthquakes**")
-  )
+  ) |> 
+  tab_options(table.font.size = px(13))
 
 ```
 
-#### Column {width=30%}
+#### Column {width=28%}
 
 ```{r}
 #| label: distribution-mmi
@@ -289,5 +289,12 @@ eqnz |>
 
 ### Row
 
-Last updated: `r format(time_now, "%a, %d %B %Y %I:%M %p")`
+:::{style="font-size: 65%;"}
+
+Sourced from [https://api.geonet.org.nz/](https://api.geonet.org.nz/)
+      |      
+Last extracted `r format(time_now, "%A, %d %B %Y %I:%M %p")`
+      |      
+Latest 100 earthquakes excluding deleted
+:::
 

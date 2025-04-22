@@ -1,0 +1,40 @@
+#-------------------------------------------------------------------------------
+# _brand.yml
+# sets the colour palette for any quarto documents
+#-------------------------------------------------------------------------------
+
+meta:
+  name: Jo Dudding
+  link: https://github.com/JoDudding
+
+defaults:
+  bootstrap:
+    defaults: 
+      link-decoration: underline
+      navbar-fg: "#fff"
+
+color:
+  palette:
+    dark-grey: "#222222"
+    blue: "#ddeaf1"
+    unnoticeable: '#FFF7F3'
+    weak:         '#FDD0A2'
+    light:        '#FDAE6B'
+    moderate:     '#FD8D3C'
+    strong:       '#F16913'
+    severe:       '#F03B20'
+    extreme:      '#A30021'
+  background: unnoticeable
+  foreground: dark-grey
+  primary: extreme
+  secondary: strong
+
+#logo: 
+#  medium: logo.png
+
+typography:
+  fonts:
+    - family: Monserrat
+      source: google
+  base: Monserrat
+  headings: Monserrat
