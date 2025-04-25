@@ -18,3 +18,7 @@ Still a work in progress
 - [x] Add NZ outline to map
 - [x] Add hover labels to map
 - [x] GitHub actions to schedule updates
+
+## Inspiration
+
+[Recent Earthquakes in Aotearoa New Zealand](https://pub.demo.posit.team/public/nz-quakes/quakes.html). [Code](https://github.com/cwickham/quakes)
