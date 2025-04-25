@@ -21,4 +21,4 @@ Still a work in progress
 
 ## Inspiration
 
-[Recent Earthquakes in Aotearoa New Zealand](https://pub.demo.posit.team/public/nz-quakes/quakes.html). [Code](https://github.com/cwickham/quakes)
+[Recent Earthquakes in Aotearoa New Zealand](https://pub.demo.posit.team/public/nz-quakes/quakes.html) ([Code](https://github.com/cwickham/quakes))
