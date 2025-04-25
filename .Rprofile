@@ -4,3 +4,4 @@
 
 # set location to NZ
 Sys.setlocale("LC_ALL", "en_NZ.utf8")
+Sys.setenv(TZ = 'NZ')
