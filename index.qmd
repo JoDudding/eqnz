@@ -348,6 +348,8 @@ eqnz |>
 
 :::{style="font-size: 65%;"}
 
+ℹ️ Automation has been set up but is currently turned off
+
 Sourced from [https://api.geonet.org.nz/](https://api.geonet.org.nz/)
       |      
 Last extracted `r format(time_now, "%A, %d %B %Y %I:%M %p")`
